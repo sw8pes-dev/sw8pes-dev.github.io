@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Cornelusi very VERY cute</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: url("background.png") center/cover no-repeat fixed;
+    color: white;
+    margin: 0;
+    padding: 0;
+    display: flex;
+  }
+
+  /* ==== LEFT SHOP PANEL ==== */
+  #shop {
+    width: 240px;
+    background: rgba(0,0,0,0.65);
+    padding: 20px;
+    border-right: 3px solid hotpink;
+  }
+
+  #shop h2 {
+    margin-top: 0;
+    color: hotpink;
+    text-shadow: 0 0 6px hotpink;
+  }
+
+  .shop-item {
+    margin-bottom: 20px;
+    padding: 10px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+  }
+
+  .shop-item button {
+    width: 100%;
+    padding: 9px;
+    background: hotpink;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    color: white;
+  }
+
+  .shop-item button:disabled {
+    background: gray;
+    cursor: not-allowed;
+  }
+
+  /* ==== MAIN CONTENT ==== */
+  #main {
+    flex: 1;
+    text-align: center;
+    padding: 30px;
+  }
+
+  .photo-wrap {
+    position: relative;
+    display: inline-block;
+    width: 300px;
+    height: auto;
+  }
+
+  #image {
+    display: block;
+    width: 300px;
+    height: auto;
+    border-radius: 8px;
+    user-select: none;
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    pointer-events: none;
+    transition: background-color 0.25s linear;
+    z-index: 2;
+  }
+
+  #sparkles, #angry {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  #sparkles img, #angry img {
+    width: 48px;
+    position: absolute;
+    transform: translate(-50%, -50%);
+  }
+
+  #bar-container {
+    width: 300px;
+    height: 18px;
+    background: #444;
+    margin: 16px auto;
+    border-radius: 9px;
+    overflow: hidden;
+  }
+
+  #bar {
+    height: 100%;
+    width: 100%;
+    background: hotpink;
+    transition: width 0.25s linear, background-color 0.25s linear;
+  }
+
+  button {
+    padding: 10px 16px;
+    background: hotpink;
+    border: none;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    margin-top: 10px;
+  }
+
+  /* Overkill display */
+  #overkillDisplay {
+    font-size: 22px;
+    margin-top: 12px;
+    font-weight: bold;
+    transition: transform 0.3s ease;
+    color: white;
+  }
+
+  /* Number styling – big and pink */
+  #overkillDisplay .count {
+    color: hotpink;
+    font-size: 38px;
+    font-weight: 900;
+  }
+
+  /* Shake animation */
+  @keyframes shake {
+    0% { transform: translate(0,0) }
+    20% { transform: translate(-6px, 4px) }
+    40% { transform: translate(6px, -4px) }
+    60% { transform: translate(-6px, 4px) }
+    80% { transform: translate(6px, -4px) }
+    100% { transform: translate(0,0) }
+  }
+
+  .shake {
+    animation: shake 0.4s;
+  }
+
+  /* Pop animation */
+  .pop {
+    animation: pop 0.4s;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.45); }
+    60% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== SHOP PANEL ==================== -->
+<div id="shop">
+  <h2>🛍️ Shop</h2>
+
+  <div class="shop-item">
+    <h3>Overkill Protection</h3>
+    <p>Cost: 100 Overkill</p>
+    <button id="buyProtectionBtn">Buy</button>
+  </div>
+
+  <div class="shop-item">
+    <h3>Autoclicker</h3>
+    <p>Cost: 250 Overkill</p>
+    <button id="buyAutoclickerBtn">Buy</button>
+  </div>
+</div>
+
+<!-- ==================== MAIN GAME AREA ==================== -->
+<div id="main">
+<h2>Cute Meter 💗</h2>
+
+<div class="photo-wrap">
+  <img id="image" src="cornerlius.png" alt="Aaron">
+  <div class="overlay" id="overlay"></div>
+  <div id="sparkles"></div>
+  <div id="angry"></div>
+</div>
+
+<div id="bar-container">
+  <div id="bar"></div>
+</div>
+
+<button id="cuteBtn">Boy You Cute 💖</button>
+
+<!-- Autoclicker toggle (appears after purchase) -->
+<button id="autoToggleBtn" style="display:none;">Enable Autoclicker 🤖</button>
+
+<div id="overkillDisplay">
+  Cuteness Overkill <span class="count">0x</span> 💞✨🐥
+</div>
+</div>
+
+<script>
+/* SETTINGS */
+let cute = 50;
+const BOOST = 20;
+const DECAY = 10;
+const TICK_MS = 1000;
+const maxSparkles = 5;
+const maxAngry = 5;
+const MAX_OPACITY = 0.8;
+
+let overkill = 0;
+
+/* SHOP STATE */
+let hasProtection = false;
+let protectionUsedThisZero = false;
+
+let hasAutoclicker = false;
+let autoclickerEnabled = false;
+let autoclickerInterval = null;
+
+/* ELEMENTS */
+const overlay = document.getElementById('overlay');
+const sparkles = document.getElementById('sparkles');
+const angry = document.getElementById('angry');
+const bar = document.getElementById('bar');
+const btn = document.getElementById('cuteBtn');
+const image = document.getElementById('image');
+const overkillDisplay = document.getElementById('overkillDisplay');
+const buyProtectionBtn = document.getElementById('buyProtectionBtn');
+const buyAutoclickerBtn = document.getElementById('buyAutoclickerBtn');
+const autoToggleBtn = document.getElementById('autoToggleBtn');
+
+/* AUDIO SETUP */
+const audioCtx = new AudioContext();
+let soundBuffer = null;
+
+fetch("sound.mp3")
+  .then(res => res.arrayBuffer())
+  .then(buf => audioCtx.decodeAudioData(buf))
+  .then(decoded => soundBuffer = decoded);
+
+function playToneBasedOnCute() {
+  if (!soundBuffer) return;
+  const src = audioCtx.createBufferSource();
+  src.buffer = soundBuffer;
+  const playbackRate = 0.5 + (cute / 100) * 1.5;
+  src.playbackRate.value = playbackRate;
+  src.connect(audioCtx.destination);
+  src.start();
+}
+
+function clearChildren(node) {
+  while (node.firstChild) node.removeChild(node.firstChild);
+}
+
+function spawnImages(container, src, count) {
+  clearChildren(container);
+  for (let i = 0; i < count; i++) {
+    let img = document.createElement("img");
+    img.src = src;
+    img.style.left = (10 + Math.random()*80) + "%";
+    img.style.top = (10 + Math.random()*80) + "%";
+    let scale = 0.85 + Math.random()*0.5;
+    img.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    container.appendChild(img);
+  }
+}
+
+/* Update Overkill Display Text */
+function updateOverkillDisplay() {
+  overkillDisplay.innerHTML =
+    `Cuteness Overkill <span class="count">${overkill}x</span>!!! 💖💘💞🐣✨`;
+}
+
+/* Shake + Pop animation trigger */
+function triggerOverkillAnimations() {
+  image.classList.add("shake");
+  overkillDisplay.classList.add("shake");
+  overkillDisplay.classList.add("pop");
+
+  setTimeout(() => {
+    image.classList.remove("shake");
+    overkillDisplay.classList.remove("shake");
+    overkillDisplay.classList.remove("pop");
+  }, 450);
+}
+
+/* UPDATE VISUALS */
+function updateState(){
+  cute = Math.min(100, Math.max(0, cute));
+  bar.style.width = cute + "%";
+
+  if (cute > 0) {
+    protectionUsedThisZero = false;
+  }
+
+  if (cute >= 50) {
+    const intensity = (cute - 50) / 50;
+    const alpha = Math.min(MAX_OPACITY, intensity * MAX_OPACITY);
+    overlay.style.backgroundColor = `rgba(255,182,193,${alpha})`;
+    bar.style.backgroundColor = `rgba(255,105,180, ${0.6 + 0.2*intensity})`;
+
+    clearChildren(angry);
+    const count = Math.floor(intensity * maxSparkles);
+    if (count > 0) spawnImages(sparkles, "sparkle.png", count);
+    else clearChildren(sparkles);
+
+  } else {
+    const intensity = (50 - cute) / 50;
+    const alpha = Math.min(MAX_OPACITY, intensity * MAX_OPACITY);
+    overlay.style.backgroundColor = `rgba(255,0,0,${alpha})`;
+    bar.style.backgroundColor = `rgba(255,0,0, ${0.6 + 0.2*intensity})`;
+
+    clearChildren(sparkles);
+    const count = Math.floor(intensity * maxAngry);
+    if (count > 0) spawnImages(angry, "angry.png", count);
+    else clearChildren(angry);
+  }
+}
+
+/* BUTTON CLICK */
+btn.addEventListener("click", () => {
+
+  if (cute >= 100) {
+    // OVERKILL!!!
+    overkill++;
+    updateOverkillDisplay();
+    triggerOverkillAnimations();
+  }
+
+  cute = Math.min(100, cute + BOOST);
+  playToneBasedOnCute();
+  updateState();
+});
+
+/* NORMAL DECAY */
+setInterval(() => {
+  cute = Math.max(0, cute - DECAY);
+  updateState();
+}, TICK_MS);
+
+/* PENALTY SOUND */
+const penaltySound1 = new Audio("sound1.mp3");
+const penaltySound2 = new Audio("sound1.mp3");
+
+/* PUNISHMENT LOOP */
+setInterval(() => {
+
+  if (cute === 0 && overkill > 0) {
+
+    if (hasProtection) {
+
+      if (!protectionUsedThisZero) {
+        // Apply penalty once
+        overkill = Math.floor(overkill * 0.85);
+
+        penaltySound1.volume = 1.0;
+        penaltySound2.volume = 1.0;
+
+        penaltySound1.play();
+        setTimeout(() => penaltySound2.play(), 150);
+
+        protectionUsedThisZero = true;
+        updateOverkillDisplay();
+      }
+
+    } else {
+      // No protection – punish every 3 seconds
+      overkill = Math.floor(overkill * 0.85);
+      penaltySound1.volume = 1.0;
+      penaltySound1.play();
+      updateOverkillDisplay();
+    }
+
+  }
+
+}, 3000);
+
+/* SHOP – BUY PROTECTION */
+buyProtectionBtn.addEventListener("click", () => {
+  if (overkill >= 100) {
+    overkill -= 100;
+    hasProtection = true;
+    buyProtectionBtn.disabled = true;
+    buyProtectionBtn.textContent = "Purchased ✓";
+    updateOverkillDisplay();
+  }
+});
+
+/* SHOP – BUY AUTOCLICKER */
+buyAutoclickerBtn.addEventListener("click", () => {
+  if (overkill >= 250) {
+    overkill -= 250;
+    hasAutoclicker = true;
+    buyAutoclickerBtn.disabled = true;
+    buyAutoclickerBtn.textContent = "Purchased ✓";
+    autoToggleBtn.style.display = "inline-block";
+    updateOverkillDisplay();
+  }
+});
+
+/* AUTOCLICKER TOGGLE */
+autoToggleBtn.addEventListener("click", () => {
+  if (!hasAutoclicker) return;
+
+  autoclickerEnabled = !autoclickerEnabled;
+
+  if (autoclickerEnabled) {
+    autoToggleBtn.textContent = "Disable Autoclicker ❌";
+    autoclickerInterval = setInterval(() => btn.click(), 25);
+  } else {
+    autoToggleBtn.textContent = "Enable Autoclicker 🤖";
+    clearInterval(autoclickerInterval);
+  }
+});
+
+/* INITIAL */
+updateState();
+</script>
+
+</body>
+</html>
